@@ -107,20 +107,25 @@ func parseAccessToken(s string) (*parsedToken, error) {
 	return tok, nil
 }
 
-// deriveAccessTokenKey turns a 16-byte BWS access-token seed into the
-// 64-byte AES-256-CBC + HMAC-SHA256 working key used to decrypt the
-// identity server's `encrypted_payload`.
+// deriveShareableKey is Bitwarden's `derive_shareable_key(secret, name, info)`
+// (see bitwarden-crypto/src/keys/shareable_key.rs). It derives a 64-byte
+// AES-256-CBC + HMAC-SHA256 working key from a 16-byte seed:
 //
-// Mirrors `derive_shareable_key(secret, "accesstoken", Some("sm-access-token"))`
-// from bitwarden-crypto:
+//	prk = HMAC-SHA256(key="bitwarden-"+name, msg=seed)
+//	okm = HKDF-Expand(prk, info, L=64)
 //
-//	prk = HMAC-SHA256(key="bitwarden-accesstoken", msg=secret)
-//	okm = HKDF-Expand(prk, info="sm-access-token", L=64)
-func deriveAccessTokenKey(seed []byte) ([]byte, error) {
-	h := hmac.New(sha256.New, []byte("bitwarden-accesstoken"))
+// `info` may be empty, matching the `Option::None` branch in the Rust source.
+func deriveShareableKey(seed []byte, name, info string) ([]byte, error) {
+	h := hmac.New(sha256.New, []byte("bitwarden-"+name))
 	h.Write(seed)
 	prk := h.Sum(nil)
-	return hkdf.Expand(sha256.New, prk, "sm-access-token", 64)
+	return hkdf.Expand(sha256.New, prk, info, 64)
+}
+
+// deriveAccessTokenKey is the BWS-specific specialization used to unwrap
+// the identity server's `encrypted_payload`.
+func deriveAccessTokenKey(seed []byte) ([]byte, error) {
+	return deriveShareableKey(seed, "accesstoken", "sm-access-token")
 }
 
 // ── Bitwarden EncString crypto ───────────────────────────────────────────────

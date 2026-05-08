@@ -7,31 +7,37 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/agustine-leo/bw-secrets-agent/internal/bwclient"
 	"github.com/agustine-leo/bw-secrets-agent/internal/config"
 )
 
-// Renderer renders Go templates with Bitwarden SM secrets injected via
-// the secret() and secretID() template functions.
-type Renderer struct {
-	client *bwclient.Client
+// SecretSource is the subset of bwclient.Client that the renderer needs.
+// Defining it as an interface here keeps the package testable in isolation.
+type SecretSource interface {
+	GetByName(args ...string) (string, error)
+	GetByID(id string) (string, error)
 }
 
-func NewRenderer(client *bwclient.Client) *Renderer {
-	return &Renderer{client: client}
+// Renderer renders Go templates, injecting Bitwarden SM values via
+// the `secret` and `secretID` template functions.
+type Renderer struct {
+	src SecretSource
+}
+
+func NewRenderer(src SecretSource) *Renderer {
+	return &Renderer{src: src}
 }
 
 // Render executes the template source against the cached secret store.
 func (r *Renderer) Render(tpl *config.Template, source []byte) ([]byte, error) {
 	funcMap := template.FuncMap{
-		// secret "key"            → lookup by bare key
+		// secret "key"           → lookup by bare key
 		// secret "project" "key" → lookup by project + key
 		"secret": func(args ...string) (string, error) {
-			return r.client.GetByName(args...)
+			return r.src.GetByName(args...)
 		},
 		// secretID "uuid" → lookup by Bitwarden secret UUID
 		"secretID": func(id string) (string, error) {
-			return r.client.GetByID(id)
+			return r.src.GetByID(id)
 		},
 	}
 

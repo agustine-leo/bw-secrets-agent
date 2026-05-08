@@ -28,3 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   access token itself changed).
 - `--once` flag for init-container / CI rendering.
 - JWT auto-renewal 60 seconds before expiry.
+- Unit tests for token parsing, key derivation (against Bitwarden's
+  published `derive_shareable_key` test vectors), EncString round-trip,
+  PKCS#7 padding, JWT claim extraction, HCL config loader, and template
+  rendering. `go test -race ./...` runs in <2s.
