@@ -93,6 +93,8 @@ template {
   source      = "templates/app.tpl"   # or use `contents = "..."` inline
   destination = "/etc/myapp/app.env"
   perms       = "0640"
+  owner       = "root"                # optional; user name or numeric UID
+  group       = "myapp"               # optional; group name or numeric GID
   left_delim  = "{{"                  # optional, defaults shown
   right_delim = "}}"
 
@@ -103,6 +105,12 @@ template {
   }
 }
 ```
+
+`owner` and `group` are applied **after** the file is written and
+**before** `exec.command` runs, so the reload target sees the file with
+its final ownership. Either field may be a name or a numeric ID; if
+omitted, the existing UID/GID is preserved. The agent must be running
+as a user that can `chown` to the requested target (typically root).
 
 If `command` is a single string it is passed to `sh -c`. If it is two or
 more elements, they are exec'd directly (no shell expansion). The

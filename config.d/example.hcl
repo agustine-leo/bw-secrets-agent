@@ -57,6 +57,12 @@ template {
   destination = "/tmp/app.env"
   perms       = "0640"
 
+  # Optional ownership. Either field may be a name or a numeric ID; if
+  # omitted, the existing UID/GID is preserved. The agent must be running
+  # as a user that can chown to the requested target (typically root).
+  # owner = "root"
+  # group = "myapp"
+
   exec {
     command = ["echo", "rendered /tmp/app.env"]
     timeout = "10s"

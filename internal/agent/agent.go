@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"os/user"
 	"strconv"
 	"sync"
 	"time"
@@ -154,6 +155,12 @@ func renderTemplate(ctx context.Context, r *tmpl.Renderer, tpl *config.Template)
 		return fmt.Errorf("writing %q: %w", tpl.Destination, err)
 	}
 
+	if tpl.Owner != "" || tpl.Group != "" {
+		if err := chownFile(tpl.Destination, tpl.Owner, tpl.Group); err != nil {
+			return fmt.Errorf("chown %q: %w", tpl.Destination, err)
+		}
+	}
+
 	return runner.RunExec(ctx, tpl.Exec)
 }
 
@@ -166,6 +173,52 @@ func parsePerms(s string) (fs.FileMode, error) {
 		return 0, fmt.Errorf("invalid perms %q: must be an octal string like 0640", s)
 	}
 	return fs.FileMode(v), nil
+}
+
+// chownFile sets the destination file's ownership. owner / group may be a
+// name or a numeric ID; an empty string means "don't change". Passing -1 to
+// os.Chown preserves the existing UID or GID.
+func chownFile(path, owner, group string) error {
+	uid, gid := -1, -1
+	if owner != "" {
+		u, err := resolveUID(owner)
+		if err != nil {
+			return err
+		}
+		uid = u
+	}
+	if group != "" {
+		g, err := resolveGID(group)
+		if err != nil {
+			return err
+		}
+		gid = g
+	}
+	return os.Chown(path, uid, gid)
+}
+
+// resolveUID accepts either a numeric UID or a user name.
+func resolveUID(s string) (int, error) {
+	if n, err := strconv.Atoi(s); err == nil {
+		return n, nil
+	}
+	u, err := user.Lookup(s)
+	if err != nil {
+		return -1, fmt.Errorf("user %q: %w", s, err)
+	}
+	return strconv.Atoi(u.Uid)
+}
+
+// resolveGID accepts either a numeric GID or a group name.
+func resolveGID(s string) (int, error) {
+	if n, err := strconv.Atoi(s); err == nil {
+		return n, nil
+	}
+	g, err := user.LookupGroup(s)
+	if err != nil {
+		return -1, fmt.Errorf("group %q: %w", s, err)
+	}
+	return strconv.Atoi(g.Gid)
 }
 
 func newClient(cfg *config.Config) *bwclient.Client {

@@ -58,6 +58,8 @@ type Template struct {
 	Contents    string      `hcl:"contents,optional"`
 	Destination string      `hcl:"destination"`
 	Perms       string      `hcl:"perms,optional"`
+	Owner       string      `hcl:"owner,optional"` // user name or numeric UID; empty = don't chown
+	Group       string      `hcl:"group,optional"` // group name or numeric GID; empty = don't chgrp
 	LeftDelim   string      `hcl:"left_delim,optional"`
 	RightDelim  string      `hcl:"right_delim,optional"`
 	Exec        *ExecConfig `hcl:"exec,block"`

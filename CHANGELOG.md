@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `secret KEY`, `secretID UUID`.
 - `template { exec { command } }` block fires only when the rendered
   output differs from the destination file.
+- `template.owner` and `template.group` apply file ownership after the
+  write and before `exec` runs. Both accept user/group names or numeric
+  IDs; an empty value preserves the existing UID/GID.
 - `SIGHUP` reloads `config.d/` without dropping the JWT (unless the
   access token itself changed).
 - `--once` flag for init-container / CI rendering.
