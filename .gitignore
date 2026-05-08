@@ -1,0 +1,11 @@
+# Build output
+/bw-secrets-agent
+
+# Local-only configuration overlays
+/config.d/*.local.hcl
+
+# Editor / OS noise
+.idea/
+.vscode/
+*.swp
+.DS_Store
